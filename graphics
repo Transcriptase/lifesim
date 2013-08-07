@@ -1,0 +1,44 @@
+import pygame,sys
+
+
+
+WINDOWHEIGHT = 800
+WINDOWWIDTH = 800
+CELLSIZE = 10
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+DARK_GREY = (40, 40, 40)
+
+def main():
+    pygame.init()
+    global DISPLAYSURF
+    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    pygame.display.set_caption("LifeSim")
+    DISPLAYSURF.fill(WHITE)
+    draw_grid()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            draw_grid()
+            pygame.display.update()
+            
+def draw_grid():
+    for x in range(0, WINDOWWIDTH, CELLSIZE):
+         pygame.draw.line(
+            DISPLAYSURF,
+            DARK_GREY,
+            (x, 0),
+            (x, WINDOWHEIGHT)
+            )
+    for y in range(0, WINDOWHEIGHT, CELLSIZE):
+        pygame.draw.line(
+            DISPLAYSURF,
+            DARK_GREY,
+            (0,y),
+            (WINDOWWIDTH, y))
+              
+if __name__ == "__main__":        
+    main()

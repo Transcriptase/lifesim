@@ -2,18 +2,28 @@ from math import sqrt
 import pathfinder
 import pygame
 import sys
+from random import choice
 
 class Node(object):
     '''
     A single location on a map grid.
     '''
-    def __init__(self):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        
         self.occupants = []
         self.move_cost = 1
     
-    def set_location(self, x, y):
-        self.x = x
-        self.y = y
+    def __str__(self):
+        return "Node(%s, %s), %s occupants" % (
+            self.x,
+            self.y,
+            len(self.occupants)
+        )
+        
+    def __repr__(self):
+        return "Node(%r, %r)" % (self.x, self.y)
         
     def set_plants(self, amount, energy_density, veg_max):
         self.plants = Vegetation(amount, energy_density, veg_max)
@@ -39,9 +49,10 @@ class Grid(object):
             for j in range(y):
                 self.nodes.append([])
                 for i in range(x):
-                    new_node = Node()
-                    new_node.set_location(i, j)
+                    new_node = Node(i, j)
                     self.nodes[j].append(new_node)
+                    
+            self.organisms = []
                     
         def get_node(self, x, y):
             return self.nodes[y][x]
@@ -67,6 +78,10 @@ class Grid(object):
                         if new_node != node:
                             neighbors.append(new_node)
             return neighbors
+            
+        def update(self):
+            for org in self.organisms:
+                org.decide()
                     
 class Vegetation(object):
     '''
@@ -82,21 +97,32 @@ class Organism(object):
     '''
     Base class for all organisms
     '''
-    def __init__(self):
-        self.energy = 100
-        self.bitesize = 1
+    
+    def __init__(self, grid):
+        self.energy = 100.
+        self.energy_max = 100.
+        self.bitesize = 1.
+        self.speed = 1
+        self.sight_range = 2
+        
+        self.eat_threshold = .9
+
+        self.grid = grid
+        self.grid.organisms.append(self)
+        self.path = []
+        self.goal = []
     
     def set_location(self, node):
         self.location = node
         node.occupants.append(self)
         
-    def pathfind(self, goal, map):
+    def pathfind(self, goal):
         '''
         A* pathfinding to goal
         '''
-        pf = pathfinder.PathFinder(map.neighbors,
-                                    map.move_cost,
-                                    map.dist)
+        pf = pathfinder.PathFinder(self.grid.neighbors,
+                                    self.grid.move_cost,
+                                    self.grid.dist)
         p = pf.compute_path(self.location, goal)
         return p
                 
@@ -104,6 +130,69 @@ class Organism(object):
     def graze(self):
         self.location.plants.amount -= self.bitesize
         self.energy += self.location.plants.energy_density * self.bitesize
+        
+    def move(self):
+        for i in range(self.speed):
+            if self.location == self.goal:
+                self.path = False
+                self.goal = False
+            else:
+                self.location.occupants.remove(self)
+                self.set_location(self.path.next())
+            
+            
+    def can_see(self):
+#This is just an extension of Grid.neighbors() to arbitrary
+#distances. But neighbors needs to have a static range of 1
+#to tie into the A* implementation. Maybe fixable?
+        can_see = []
+        deltas = range(-self.sight_range, self.sight_range +1)
+        for delta in deltas:
+            new_x = self.location.x + delta
+            for delta in deltas:
+                new_y = self.location.y + delta
+                if (new_x in range(len(self.grid.nodes)) and
+                    new_y in range(len(self.grid.nodes[0]))
+                ):
+                    new_node = self.grid.get_node(new_x, new_y)
+                    can_see.append(new_node)
+        return can_see
+    
+    def find_plants(self):
+        search_order = sorted(
+            self.can_see(),
+            key = lambda x: self.grid.dist(self.location, x)
+        )
+        found = False
+        resign = False
+        goal = []
+        while not found and not resign:
+            for node in search_order:
+                if node.plants.amount > 0:
+                    goal = node
+                    found = True
+            resign = True
+            return goal
+            
+    def forage(self):
+        self.goal = self.find_plants()
+        if self.goal:
+            self.path = self.pathfind(self.goal)
+            
+    def decide(self):
+        if self.path:
+            self.move()
+        elif self.energy < self.eat_threshold * self.energy_max:
+            if self.location.plants.amount >= self.bitesize:
+                self.graze()
+            else:
+                self.forage()
+                if not self.path:
+                    self.wander()
+            
+    def wander(self):
+        self.goal = choice(self.can_see())
+        self.path = self.pathfind(self.goal)
 
 class Visualizer(object):
     '''
@@ -187,6 +276,8 @@ class Visualizer(object):
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.grid.update()
                 self.draw()
             pygame.display.update()    
         
