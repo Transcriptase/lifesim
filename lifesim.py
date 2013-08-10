@@ -138,7 +138,9 @@ class Organism(object):
                 self.goal = False
             else:
                 self.location.occupants.remove(self)
-                self.set_location(self.path.next())
+                dest = self.path.next()
+                self.energy -= dest.move_cost
+                self.set_location(dest)
             
             
     def can_see(self):
@@ -180,7 +182,9 @@ class Organism(object):
             self.path = self.pathfind(self.goal)
             
     def decide(self):
-        if self.path:
+        if self.energy < 0:
+            self.die()
+        elif self.path:
             self.move()
         elif self.energy < self.eat_threshold * self.energy_max:
             if self.location.plants.amount >= self.bitesize:
@@ -193,6 +197,10 @@ class Organism(object):
     def wander(self):
         self.goal = choice(self.can_see())
         self.path = self.pathfind(self.goal)
+        
+    def die(self):
+        self.grid.organisms.remove(self)
+        self.location.occupants.remove(self)
 
 class Visualizer(object):
     '''

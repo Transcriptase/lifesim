@@ -119,9 +119,13 @@ class TestOrg(object):
         self.o.set_location(self.o.grid.get_node(3, 3))
         self.o.goal = self.o.grid.get_node(6, 6)
         self.o.path = self.o.pathfind(self.o.goal)
+        energy = 100
+        eq_(self.o.energy, energy)
         for i in range(3, 7):
             self.o.move()
+            energy -= 1
             eq_(self.o.location, self.o.grid.get_node(i, i))
+            eq_(self.o.energy, energy)
         self.o.move()
         ok_(not self.o.path, not self.o.goal)
 
@@ -136,16 +140,19 @@ class TestOrg(object):
         #decides to forage, finds the food at 3, 3, gets a goal and a path
         ok_(self.d_o.path)
         eq_(self.d_o.goal, self.d_o.grid.get_node(3, 3))
+        eq_(self.d_o.energy, 20)
         self.d_o.decide()
         #now has a path, calls move(), but first node in path is the current one
+        #but energy cost is charged (this is a double charge, fix)
         eq_(self.d_o.location, self.d_o.grid.get_node(5, 5))
+        eq_(self.d_o.energy, 19)
         self.d_o.decide()
         #moves to next node on path
         eq_(self.d_o.location, self.d_o.grid.get_node(4, 4))
         self.d_o.decide()
         #moves to next node on path, which is the goal
         eq_(self.d_o.location, self.d_o.grid.get_node(3, 3))
-        eq_(self.d_o.energy, 20)
+        eq_(self.d_o.energy, 17)
         eq_(self.d_o.location.plants.amount, 1)
         self.d_o.decide()
         #still calls move(), finds it's at the end
@@ -153,9 +160,11 @@ class TestOrg(object):
         self.d_o.decide()
         #grazes
         eq_(self.d_o.location, self.d_o.grid.get_node(3, 3))        
-        eq_(self.d_o.energy, 21)
+        eq_(self.d_o.energy, 18)
         eq_(self.d_o.location.plants.amount, 0)
         ok_(not self.d_o.path, not self.d_o.goal)
+        
+        
 
 def rand_pop(grid, animals):
     for i in range(animals):
@@ -196,8 +205,8 @@ class TestVis(object):
     def test_color(self):
         self.v.fill_grid()
         
-#    def test_d(self):
-#       self.v_d.run()
+    def test_d(self):
+        self.v_d.run()
         
 #    def test_full(self):
  #      self.v.run()
