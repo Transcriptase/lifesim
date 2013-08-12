@@ -13,11 +13,11 @@ class TestNode(object):
         eq_(self.n.plants.energy_density, 1)
         
 def build_small_map():
-    map = ls.Grid(10,10)
-    for row in map.nodes:
+    grid = ls.Grid(10,10)
+    for row in grid.nodes:
         for node in row:
             node.make_plain()
-    return map
+    return grid
     
 def build_desert():
     d = ls.Grid(10, 10)
@@ -70,11 +70,14 @@ class TestOrg(object):
     def setup(self):
         self.m = build_small_map()
         self.o = ls.Organism(self.m)
+        self.n = self.m.get_node(3, 3)
+        self.o.set_location(self.n)
         
         #build an empty map with 1 plant in it
         self.d = build_desert()
         self.d.get_node(3, 3).set_plants(1, 1, 10)
         self.d_o = ls.Organism(self.d)
+        
         
     def test_init(self):
         ok_(self.o in self.m.organisms)
@@ -163,8 +166,10 @@ class TestOrg(object):
         eq_(self.d_o.energy, 18)
         eq_(self.d_o.location.plants.amount, 0)
         ok_(not self.d_o.path, not self.d_o.goal)
-        
-        
+    
+    def test_birth(self):
+        self.o.give_birth()
+        eq_(len(self.o.location.occupants), 3)
 
 def rand_pop(grid, animals):
     for i in range(animals):
@@ -205,8 +210,8 @@ class TestVis(object):
     def test_color(self):
         self.v.fill_grid()
         
-    def test_d(self):
-        self.v_d.run()
+#     def test_d(self):
+#         self.v_d.run()
         
 #    def test_full(self):
  #      self.v.run()

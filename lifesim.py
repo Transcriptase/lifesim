@@ -106,6 +106,7 @@ class Organism(object):
         self.sight_range = 2
         
         self.eat_threshold = .9
+        self.litter_size  = 2
 
         self.grid = grid
         self.grid.organisms.append(self)
@@ -201,6 +202,12 @@ class Organism(object):
     def die(self):
         self.grid.organisms.remove(self)
         self.location.occupants.remove(self)
+        
+    def give_birth(self):
+        for i in range(self.litter_size):
+            new_org = Organism(self.grid)
+            new_org.set_location(self.location)
+            
 
 class Visualizer(object):
     '''
@@ -211,7 +218,7 @@ class Visualizer(object):
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
     DK_GREY = (40, 40, 40)
-    YL_GN = [(255, 255, 229),
+    YL_GN = [(255, 255, 229), #yellow-to-green color spectrum
             (247, 252, 185),
             (217, 240, 163),
             (173, 221, 142),
